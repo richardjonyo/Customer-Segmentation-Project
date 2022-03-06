@@ -5,6 +5,9 @@
 #          In this machine learning project, we will make use of K-means clustering.
 ###########################################################
 # Note: this process could take a couple of minutes
+if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
+if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
 if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
 if(!require(DataExplorer)) install.packages("DataExplorer", repos = "http://cran.us.r-project.org")
 if(!require(heatmaply)) install.packages("heatmaply", repos = "http://cran.us.r-project.org")

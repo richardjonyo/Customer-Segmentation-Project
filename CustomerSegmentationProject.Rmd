@@ -36,6 +36,9 @@ The project utilized and loaded several CRAN libraries to assist with the analys
 
 ```{r Loading Packages, message = FALSE, warning = FALSE}
 # Note: this process could take a couple of minutes
+if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
+if(!require(tidyr)) install.packages("tidyr", repos = "http://cran.us.r-project.org")
 if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
 if(!require(dataexplorer)) install.packages("dataexplorer", repos = "http://cran.us.r-project.org")
 if(!require(heatmaply)) install.packages("heatmaply", repos = "http://cran.us.r-project.org")
