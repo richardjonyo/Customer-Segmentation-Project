@@ -9,8 +9,10 @@ if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-
 if(!require(DataExplorer)) install.packages("DataExplorer", repos = "http://cran.us.r-project.org")
 if(!require(heatmaply)) install.packages("heatmaply", repos = "http://cran.us.r-project.org")
 if(!require(dlookr)) install.packages("dlookr", repos = "http://cran.us.r-project.org")
-if(!require(highcharter)) install.packages("highcharter", repos = "http://cran.us.r-project.org")library(ggplot2)
+if(!require(highcharter)) install.packages("highcharter", repos = "http://cran.us.r-project.org")
+if(!require(scales)) install.packages("scales", repos = "http://cran.us.r-project.org")
 
+library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(DataExplorer)
@@ -19,8 +21,9 @@ library(heatmaply)
 library(dlookr)
 library(highcharter)
 library(factoextra)
+library(scales)
 
-#E-Commerce Data dataset:
+#E-Commerce Dataset:
 #https://www.kaggle.com/fabiendaniel/customer-segmentation/data
 
 #Load dataset locally
@@ -49,8 +52,6 @@ length(unique(customer_data$InvoiceNo)) #25,900 unique invoice no.s
 plot_outlier(customer_data, Quantity, col = "#FF3399")
 plot_outlier(customer_data, UnitPrice, col = "#FF3399")
 
-
-
 #Plot missing values using the DataExplorer package
 #Looking at the size of the dataset and the missing value plot, it seems as if we can remove the missing values and still have a good-sized set of data to work on
 customer_data <- subset(customer_data, !is.na(customer_data$CustomerID))
@@ -64,12 +65,11 @@ quantityCheck <- customer_data %>%
 head(quantityCheck, 5)
 
 #Replace all negative Quantity and Price with NA
-#Delete any customerID with NA
 customer_data <- customer_data %>% 
   mutate(Quantity = replace(Quantity, Quantity<=0, NA),
          UnitPrice = replace(UnitPrice, UnitPrice<=0, NA))
 customer_data <- customer_data %>%
-  drop_na()
+  drop_na() #Delete any customerID with NA
 dim(customer_data) #we remain with 397,884 observations
 
 #We check again the presence of outliers
@@ -81,7 +81,7 @@ plot_outlier(customer_data, UnitPrice, col = "#FF3399")
 #We separate date and time components of invoice date
 customer_data$date <- sapply(customer_data$InvoiceDate, FUN = function(x) {strsplit(x, split = '[ ]')[[1]][1]})
 customer_data$time <- sapply(customer_data$InvoiceDate, FUN = function(x) {strsplit(x, split = '[ ]')[[1]][2]})
-}
+
 #we create month, year and hour of day columns
 customer_data$month <- sapply(customer_data$date, FUN = function(x) {strsplit(x, split = '[/]')[[1]][1]})
 customer_data$year <- sapply(customer_data$date, FUN = function(x) {strsplit(x, split = '[/]')[[1]][3]})
@@ -94,7 +94,7 @@ head(tmp)
 customer_data$date <- as.Date(customer_data$date, "%m/%d/%Y")
 str(customer_data)
 customer_data$dayOfWeek <- wday(customer_data$date, label=TRUE)
-tmp <- customer_data %>% select(CustomerID, Country, date, time, month, year, hourOfDay)
+tmp <- customer_data %>% select(CustomerID, Country, date, time, month, year, hourOfDay, dayOfWeek)
 head(tmp)
 
 #We convert date column to date format
@@ -102,7 +102,8 @@ head(tmp)
 customer_data$date <- as.Date(customer_data$date, "%m/%d/%Y")
 str(customer_data)
 customer_data$dayOfWeek <- wday(customer_data$date, label=TRUE)
-head(customer_data)
+tmp <- customer_data %>% select(CustomerID, Country, date, time, month, year, hourOfDay, dayOfWeek)
+head(tmp)
 
 #add a TotalCost column
 customer_data <- customer_data %>% mutate(TotalCost = Quantity * UnitPrice)
@@ -174,29 +175,49 @@ countrySummary <- customer_data %>%
   ungroup() %>%
   arrange(desc(revenue))
 head(countrySummary, n = 10)
+#tail(countrySummary, n = 10)
 
-#Top five countries in terms of revenue contribution
+#Top five countries by revenue
 top5Countries <- customer_data %>%
-  filter(Country == 'Netherlands' | Country == 'EIRE' | Country == 'Germany' | Country == 'France' | Country == 'Australia')
+  filter(Country == 'United Kingdom' | Country == 'Netherlands' | Country == 'EIRE' | Country == 'Germany' | Country == 'France' | Country == 'Australia')
 
-#dataframe of top 5 coutries
+#dataframe of top 5 countries by revenue
 top_5 <- top5Countries %>%
-  group_by(Country, date) %>%
+  group_by(Country) %>%
   dplyr::summarise(revenue = sum(TotalCost), transactions = n_distinct(InvoiceNo), 
                    customers = n_distinct(CustomerID)) %>%
   mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
-  ungroup() %>%
   arrange(desc(revenue))
-top_n(top_5, 5)
 
-#Plot top 5 country revenue summary
+#Plot countries vs. revenue
+top_5 %>% 
+  ggplot(aes(x=Country, y=revenue))+
+  geom_bar(stat = 'identity', fill = '#FF9933') +
+  ggtitle('Top 5 Countries by Revenue') +
+  xlab('Countries') +
+  ylab('Revenue')+
+  scale_y_continuous(labels = comma)
+
+
+#Plot top 5 country revenue summary (Without United Kingdom)
 #Netherlands and EIRE are significant sources of revenue
 #Germany and France also represent significant opportunities
+#we repeat the above step without United Kingdom
+#Top five countries in terms of revenue contribution
+top5Countries <- customer_data %>%
+  filter(Country == 'Netherlands' | Country == 'EIRE' | Country == 'Germany' | Country == 'France' | Country == 'Australia')
+top_5 <- top5Countries %>%
+  group_by(Country) %>%
+  dplyr::summarise(revenue = sum(TotalCost), transactions = n_distinct(InvoiceNo), 
+                   customers = n_distinct(CustomerID)) %>%
+  mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+  arrange(desc(revenue))
+
 top_5 %>% 
   group_by(Country) %>%
   dplyr::summarise(revenue = sum(revenue)) %>% 
   hchart('treemap', hcaes(x = 'Country', value = 'revenue', color = 'revenue')) %>%
-  hc_title(text=" Top 5 Countries by Revenue")
+  hc_title(text=" Top 5 Countries by Revenue (excluding United Kingdom)")
 
 
 # Customer segmentation
@@ -208,10 +229,9 @@ custSummary_1 <- customer_data %>%
   ungroup() %>%
   arrange(desc(revenue))
 
-head(custSummary_1, n = 10)
+head(custSummary_1)
 
-#Seems we have a lot of refunds
-#seems there are quite a lot of high-quantity sales and refunds
+#summarize customers with high revenues/sales
 custSummary_2 <- customer_data %>%
   group_by(CustomerID, InvoiceNo) %>%
   summarise(revenue = sum(TotalCost), transactions = n_distinct(InvoiceNo)) %>%
@@ -220,9 +240,10 @@ custSummary_2 <- customer_data %>%
   arrange(revenue) %>%
   mutate(cumsum=cumsum(revenue))
 
-head(custSummary_2, n =10)
+head(custSummary_2)
 
-#It seems many of the large transactions are refunded, so if we sum the revenue, we should be working with some reasonable numbers.
+#It seems many of the large transactions are refunded
+#we sum the revenue
 custSummary_2 <- customer_data %>%
   group_by(InvoiceNo, CustomerID, Country, date, month, year, hourOfDay, dayOfWeek) %>%
   summarise(orderVal = sum(TotalCost)) %>%
@@ -250,7 +271,7 @@ customerSummary_3Sum <- customerSummary_3 %>%
 head(customerSummary_3Sum)
 dim(customerSummary_3Sum) # We remain with a small subset (2845)
 
-#From this, we're in a good position to answer a number of questions about our customers that we could use to target specific marketing materials, promotions and offers.
+#From this, we're in a better position to answer a number of questions about our customers that we could use to target specific marketing materials, promotions and offers.
 custTargets <- customerSummary_3Sum %>%
   select(recency, revenue, meanRevenue, medianRevenue, orders) %>%
   as.matrix()
@@ -261,7 +282,7 @@ head(custTargets)
 #By analysing how customers cluster, we discover groups of customers that behave in similar ways. 
 #This level of customer segmentation is useful in marketing to these groups of customers appropriately. 
 #A marketing campaign that works for a group of customers that places low value orders frequently may not be appropriate for customers who place sporadic, high value orders for example.
-options(repr.plot.width=10, repr.plot.height=10)
+options(repr.plot.width=20, repr.plot.height=14)
 heatmap(scale(custTargets), cexCol = 0.7)
 #Recency: It refers to the number of days before the reference date when a customer made the last purchase. Lesser the value of recency, higher is the customer visit to a store.
 
@@ -272,9 +293,8 @@ set.seed(1, sample.kind="Rounding") #using R version 4.0.4`
 fviz_nbclust(custTargets, kmeans, method = "wss") +
   geom_vline(xintercept = 4, linetype = 2)
 
-clusters <- kmeans(scale(custTargets[,2:4]), 4, nstart = 1) # Performing kmeans with 4 clusters. nstart > 1 is often recommended.
+clusters <- kmeans(scale(custTargets[,1:5]), 4, nstart = 1) # Performing kmeans with 4 clusters. nstart > 1 is often recommended.
 custTargets$Cluster <- as.factor(clusters$cluster) # Attaching the results to CustomersID to identify each customer's cluster
-head(custTargetsDf, 10)
 
 #cluster sizes
 clusters$size
@@ -282,32 +302,8 @@ clusters$size
 #cluster means
 clusters$centers
 
-#Plot the data to see the clusters recency
-custTargetsDf <- as.data.frame(custTargets)
-custTargetsDf %>% 
-  ggplot(aes(x=Cluster, y=recency, color=Cluster))+
-  geom_point()+
-  geom_jitter()
+#We plot the clusters
+fviz_cluster(clusters, data=as.data.frame(custTargets)[, -6], ellipse.type = "norm")
 
-#Plot the data to see the clusters revenue
-custTargetsDf <- as.data.frame(custTargets)
-custTargetsDf %>% 
-  ggplot(aes(x=Cluster, y=meanRevenue, color=Cluster))+
-  geom_point()+
-  geom_jitter()
-
-#Plot the data to see the clusters orders
-custTargetsDf <- as.data.frame(custTargets)
-custTargetsDf %>% 
-  ggplot(aes(x=Cluster, y=orders, color=Cluster))+
-  geom_point()+
-  geom_jitter()
-
-fviz_cluster(clusters, data=custTargetsDf[, -6], ellipse.type = "norm")
-
-#Cluster 1: This clusters consist of 29 customers with high revenue.
-#Cluster 2: This cluster represents 4 customers having a high recency and revenue.
-#Cluster 3: In this cluster, there is only 1 customer with lowest order.
-#Cluster 4: This comprises of 2,811 customers with high number of orders.
 
 

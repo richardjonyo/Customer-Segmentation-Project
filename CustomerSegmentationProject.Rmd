@@ -1,25 +1,27 @@
 ---
-title: 'HarvardX:PH125.9x Data Science - Capstone CYO: Customer Segmentation Project'
+title: 'HarvardX:PH125.9x Data Science - Capstone: Customer Segmentation Project'
 author: "Richard Jonyo"
-date: "04 March 2022"
+date: "06 March 2022"
 output:
+  word_document: default
   html_document:
     df_print: paged
   pdf_document: default
-  word_document: default
+always_allow_html: true
 ---
 
+
 ```{r, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 ```
 
 # 1. Executive Summary
 
-The goal of this project was to identify the segments of customers  based on common characteristics or patterns. Segmentation of customer can take many forms, based on demographic, geographic, interest, behavior or a combination of these characteristics. Through analysing customer purchases and product sales history, we can group customers into groups that behave similarly, and use the insights to drive decision making especially targeted marketing strategies.
+The goal of this project is to identify segments of customers  based on common characteristics or patterns. Segmentation of customer can take many forms, based on demographic, geographic, interest, behavior or a combination of these characteristics. Through analyzing customer purchases and product sales history, we can group customers into groups that behave similarly, and use the insights to drive decision making especially targeted marketing strategies.
 
-For this project we shall employ k-mean Clustering which is the essential algorithm for clustering unlabelled dataset. We shall have to format the data in a way the algorithm can process, and we shall let it determine the customer segments.
+For this project we shall employ K-mean Clustering which is the essential algorithm for clustering. We shall have to format the data in a way the algorithm can process, and we shall let it determine the customer segments.
 
-This project is part of the HarvardX:PH125.9x Data Science: Capstone course and we use E-commerce dataset from [E-Commerce Dataset](https://www.kaggle.com/fabiendaniel/customer-segmentation/data) from Kaggel.com repository. The E-commerce database lists purchases made by over 4000 customers over a period of one year (from 2010/12/01 to 2011/12/09).
+This project is part of the HarvardX:PH125.9x Data Science: Capstone course and we use the [E-Commerce Dataset](https://www.kaggle.com/fabiendaniel/customer-segmentation/data) from Kaggel.com repository. The dataset lists purchases made by over 4,000 customers over a period of one year (from 2010/12/01 to 2011/12/09).
 
 Exploratory analysis was conducted on the data using R and R Studio, a language and a software environment for statistical computing. R Markdown, a simple formatting syntax for authoring HTML, PDF, and MS Word documents and a component of R Studio was used to compile the report.
 
@@ -27,9 +29,9 @@ Exploratory analysis was conducted on the data using R and R Studio, a language 
 
 This section helps us to understand the structure of the E-Commerce Dataset for us to gain insights that will aid in a better analysis for customer segmentation. It explains the process and techniques used, including data cleaning, exploration, visualization, insights gained, and the segmentation approach used.
 
-### 2.1 Required Libraries
+## 2.1 Required Libraries
 
-The project utilized and loaded several CRAN libraries to assist with the analysis. The libraries were automatically downloaded and installed during code execution. These included: ggplot2, dplyr, tidyr, DataExplorer, lubridate, heatmaply, dlookr, and highcharter libraries.
+The project utilized and loaded several CRAN libraries to assist with the analysis. The libraries were automatically downloaded and installed during code execution. These included: ggplot2, dplyr, tidyr, DataExplorer, lubridate, heatmaply, dlookr, highcharter, purrr, factoextra, and scales libraries.
 
 
 ```{r Loading Packages, message = FALSE, warning = FALSE}
@@ -41,6 +43,7 @@ if(!require(dlookr)) install.packages("dlookr", repos = "http://cran.us.r-projec
 if(!require(highcharter)) install.packages("highcharter", repos = "http://cran.us.r-project.org")
 if(!require(purrr)) install.packages("purrr", repos = "http://cran.us.r-project.org")
 if(!require(factoextra)) install.packages("factoextra", repos = "http://cran.us.r-project.org")
+if(!require(scales)) install.packages("scales", repos = "http://cran.us.r-project.org")
 
 library(ggplot2)
 library(dplyr)
@@ -52,11 +55,12 @@ library(dlookr)
 library(highcharter)
 library(purrr)
 library(factoextra)
+library(scales)
 ```
 
-### 2.2 The E-Commerce Dataset
+## 2.2 The E-Commerce Dataset
 
-The E-Commerce Dataset contains 541,909 transactions by 4,373 unique customers. Each customer is represented by a CustomerID and customers can have multiple transactions.
+The E-Commerce Dataset contains 541,909 transactions by 4,373 unique customers. Each customer is represented by a CustomerID and customers can have multiple transactions. The dataset is loaded locally as a CSV file.
 
 ```{r Loading Dataset, message = FALSE, warning = FALSE}
 # the E-Commerce Dataset:
@@ -68,12 +72,12 @@ customer_data <- read.csv("dataset/data.csv")
 
 
 ```{r Dataset Review, message = FALSE, warning = FALSE}
-head(customer_data, 5) #Preview customer_data
+head(customer_data)#Preview customer_data
 ```
 
-*The following is a brief description of the data.
+* The following is a brief description of the data.
 
-+ **InvoiceNo:** A 6-digit number uniquely assigned to each transaction. If the code starts with the letter C, it indicates a cancellation.
++ **InvoiceNo:** A 6-digit number uniquely assigned to each transaction. The letter C indicates a cancellation.
 + **StockCode:** A 5-digit number that is uniquely assigned to each product.
 + **Description:** Product name.
 + **Quantity:** The quantities of each product per transaction.
@@ -81,7 +85,6 @@ head(customer_data, 5) #Preview customer_data
 + **UnitPrice:** Product price per unit.
 + **CustomerID:** A 5-digit number uniquely assigned to each customer.
 + **Country:** The name of the customer's country.
-```
 
 The dataset has 541,909 observations and 8 columns.
 
@@ -107,7 +110,8 @@ The dataset has 4,373 unique customers.
 length(unique(customer_data$CustomerID))#4,373 unique customers
 ```
 
-#### Missing Values
+
+## 2.3 Missing values
 
 There are some missing values in the dataset on the CustomerID column.
 
@@ -115,21 +119,21 @@ There are some missing values in the dataset on the CustomerID column.
 anyNA(customer_data) #check missing values - results to TRUE
 ```
 
-We plot missing values and discover that customeID has many missing values.
+We plot missing values and discover that customerID has many missing values. Over 25% of the entries are not assigned to a particular customer.
 
 ```{r Missing Values, message = FALSE, warning = FALSE}
 #We plot missing values
 plot_missing(customer_data)
 ```
 
-The Quantity and UnitPrice seem to be the most important in the dataset. We notice that both varibales have negative values. We check their summaries as below:
+The Quantity and UnitPrice seem to be the most important in the dataset. We notice that both variables have some negative values. We check their summaries as below:
 
 ```{r Quantity and UnitPrice, message = FALSE, warning = FALSE}
 summary(customer_data$Quantity)#Quantity summary
 summary(customer_data$UnitPrice)#UnitPrice summary
 ```
 
-We notice that we have negative Quantities within the dataset which reflect cancelled orders. These are indicated with the C letter in front of the Invoice Number.
+We notice that we have negative quantities within the dataset which reflect cancelled orders. These are indicated with the C letter in front of the Invoice Number.
 
 ```{r Negative Values, message = FALSE, warning = FALSE}
 #Checking Quantities with negative values
@@ -139,27 +143,26 @@ quantityCheck <- customer_data %>%
 head(quantityCheck, 5)
 ```
 
-#### Negative values
+## 2.4 Negative values
 
-We replace all negative quantities with NA so that they don't not affect our results. In addition, we delete all transactions that do not have a customerID and remain with 397,884 observations.
+We replace all negative quantities with NA so that they don't not adversely affect our results. In addition, we delete all transactions that do not have a customerID and we remain with 397,884 observations.
 
 ```{r Replace Negative Values, message = FALSE, warning = FALSE}
 #Replace all negative Quantity and Price with NA
-#Delete any customerID with NA
 customer_data <- customer_data %>% 
   mutate(Quantity = replace(Quantity, Quantity<=0, NA),
          UnitPrice = replace(UnitPrice, UnitPrice<=0, NA))
 customer_data <- customer_data %>%
-  drop_na()
+  drop_na() #Delete any customerID with NA
 dim(customer_data) #we remain with 397,884 observations
 ```
 
 
-#### Outliers
+## 2.5 Outliers
 
-We check for the presence of outliers. We notice that most of the products that are being sold are mostly a low priced. Some of these outliers could be cancelled or wrong orders that got returned and thus were assigned with a negative value. We leave the outliers as removing them would have undermined the analysis.
+We check for the presence of outliers. We notice that most of the products that are being sold are mostly a low priced. Some of these outliers could be cancelled or wrong orders that got returned and thus were assigned with a negative value. We leave the outliers as removing them will undermined the analysis.
 
-A charts for the outliers (using the *dlookr package*) reveals that there are some negative values in our data for Quantity, as well as some zero value inputs.
+A charts for the outliers *(using the dlookr package)* confirms that there are some negative values in our data for Quantity, as well as some zero value inputs.
 
 ```{r Plot - Quantity Outliers, message = FALSE, warning = FALSE}
 #We check again the presence of outliers
@@ -171,9 +174,9 @@ plot_outlier(customer_data, Quantity, col = "#FF3399")
 plot_outlier(customer_data, UnitPrice, col = "#FF3399")
 ```
 
-#### Create Date variables
+## 2.6 Creating date variables
 
-We separate date and time components of invoice date.
+We separate date and time components from the invoice date.
 
 ```{r cleaning Dates, message = FALSE, warning = FALSE}
 #We separate date and time components of invoice date
@@ -181,7 +184,7 @@ customer_data$date <- sapply(customer_data$InvoiceDate, FUN = function(x) {strsp
 customer_data$time <- sapply(customer_data$InvoiceDate, FUN = function(x) {strsplit(x, split = '[ ]')[[1]][2]})
 ```
 
-We create month, year and hour of day variables.
+We create time, month, year and hour of day variables.
 
 ```{r Date Details, message = FALSE, warning = FALSE}
 #we create month, year and hour of day columns
@@ -200,13 +203,13 @@ We convert date column to date format and create a new column for day of the wee
 customer_data$date <- as.Date(customer_data$date, "%m/%d/%Y")
 str(customer_data)
 customer_data$dayOfWeek <- wday(customer_data$date, label=TRUE)
-tmp <- customer_data %>% select(CustomerID, Country, date, time, month, year, hourOfDay)
+tmp <- customer_data %>% select(CustomerID, Country, date, time, month, year, hourOfDay, dayOfWeek)
 head(tmp)
 ```
 
-#### Create a TotalCost Column
+## 2.7 Creating a TotalCost Column
 
-We add TotalCost column by calculating Quantity x UnitPrice.
+We add TotalCost column by multiplying Quantity and UnitPrice.
 
 ```{r TotalCost Column, message = FALSE, warning = FALSE}
 #add TotalCost column
@@ -226,9 +229,9 @@ customer_data$Country <- as.factor(customer_data$Country)
 str(customer_data)
 ```
 
-### 2.4 Exploratory Analysis
+## 2.8 Exploratory Analysis
 
-We have a good dataset to start performing some summary analyses. We employ Exploratory Data Analysis (EDA) to conduct an initial investigation inside the dataset and observe common patterns, spot anomalies and retrieve useful information about the data in a graphical way. We need to understand the dataset before starting to develop the models hence an exploratory analysis is significant.
+We have a better dataset to start performing analyses. We employ Exploratory Data Analysis (EDA) to conduct an initial investigation inside the dataset and observe common patterns, spot anomalies and retrieve useful information about the data in a graphical way. We need to understand the dataset before starting to develop the models hence an exploratory analysis is significant.
 
 Below is a quick summary of the dataset:
 
@@ -244,18 +247,7 @@ length(unique(customer_data$InvoiceNo)) #18,532 unique invoice no.s
 ```
 
 
-### 2.4.1 Data cleaning
-
-We plot the missing values using the *DataExplorer package*. Looking at the size of the dataset and the missing value plot, it seems we have missing values which we can remove and still have a good-sized set of data to work on.
-
-```{r, echo=FALSE}
-#remove missing values
-customer_data <- subset(customer_data, !is.na(customer_data$CustomerID))
-dim(customer_data) #We remain with 406,829 observations without NAs
-```
-We remain with `r dim(customer_data)` observations without NAs.
-
-### Revenue Summaries
+#### 2.8.1 Revenue Summaries
 
 From the chart below there seem to be a steady positive increase in revenue over time with the highest peak in September 2011.
 
@@ -271,7 +263,7 @@ customer_data %>%
   labs(x = 'Date', y = 'Revenue (£)', title = 'Revenue by Date')
 ```
 
-The chart below shows the Revenue by Day of Week.
+The chart below shows the Revenue by Day of Week. Most revenue is generated o Thursdays and Tuesdays and the least revenue is generated on Sundays.
 
 ```{r Revenue Per Day of Week, message = FALSE, warning = FALSE}
 # Plot Revenue by Day of Week
@@ -283,8 +275,7 @@ customer_data %>%
   labs(x = 'Day of Week', y = 'Revenue (£)', title = 'Revenue by Day of Week')
 ```
   
-The chart below shows a summary of revenue that is generated on each particular weekday.It is evident that more revenue is generated on Thursdays and the least revenue is generated on Sundays.
-  
+
 ```{r Summary Revenue per day, message = FALSE, warning = FALSE}
 #Summary of revenue generated on each weekday
 weekdaySummary <- customer_data %>%
@@ -303,7 +294,7 @@ ggplot(weekdaySummary, aes(x = dayOfWeek, y = revenue)) +
   labs(x = 'Day of the Week', y = 'Revenue', title = 'Revenue by Day of the Week')
 ```
 
-The chart below shows the transactions by day of the Week.It is evident that there are more transactions on Thursdays which is also when we have the most revenue generated.
+The chart below shows the transactions by day of the Week. It is evident that there are more transactions on Thursdays which is also when we have the most revenue generated. the same trend applies to Sunday which has the least transactions and the least revenue generated.
 
 ```{r Transactions per day, message = FALSE, warning = FALSE}
 #Plot of Transactions by Day of the Week
@@ -311,22 +302,23 @@ ggplot(weekdaySummary, aes(x = dayOfWeek, y = transactions)) +
   geom_boxplot() + labs(x = 'Day of the Week', y = 'Daily Transactions', title = 'Transactions by Day of the Week')
 ```
 
-The differences in the amount of revenue on each day of the week is driven by a difference in the no. of transactions, rather than the average order value. 
+The differences in the amount of revenue on each day of the week is driven by a difference in the no. of transactions, rather than the average order value as is evident in the chart below. 
 ```{r Average Order Value per day, message = FALSE, warning = FALSE}
 #Plot of Average Order Value by Day of the Week
 ggplot(weekdaySummary, aes(x = dayOfWeek, y = aveOrdVal)) + 
   geom_boxplot() + labs(x = 'Day of the Week', y = 'Average Order Value', title = 'Average Order Value by Day of the Week')
 ```
   
-The chart below shows that there is skewness in our distributions.
+The chart below shows that there is skewness in our distributions with the least number of transactions leaning towards Sunday and Friday.
 
 ```{r Plot - Weekday Summary, message = FALSE, warning = FALSE}
 ggplot(weekdaySummary, aes(transactions, fill = dayOfWeek)) + 
   geom_density(alpha = 0.2)
 ```
 
+#### 2.8.2 Country Summaries
 
-### Country Summaries
+We now examine the data summaries of the countries. United Kingdom has the most revenue and the most transactions while United Arab Emirates has the least transactions and revenue.
 
 ```{r Plot - country summary, message = FALSE, warning = FALSE}
 countrySummary <- customer_data %>%
@@ -343,41 +335,57 @@ The chart below shows the top five countries in terms of revenue contribution.
 ```{r Plot - Top5 Countries Revenue, message = FALSE, warning = FALSE}
 #Top five countries in revenue contribution
 top5Countries <- customer_data %>%
-  filter(Country == 'Netherlands' | Country == 'EIRE' | Country == 'Germany' | Country == 'France' | Country == 'Australia')
+  filter(Country == 'United Kingdom' | Country == 'Netherlands' | Country == 'EIRE' | Country == 'Germany' | Country == 'France' | Country == 'Australia')
 ```
 
-A table of Top five countries in terms of revenue contribution.
+A table of Top five countries in terms of revenue generation
 
 ```{r Plot - Top5 Countries Dataframe, message = FALSE, warning = FALSE}
 #dataframe of top 5 coutries
 top_5 <- top5Countries %>%
-  group_by(Country, date) %>%
+  group_by(Country) %>%
   dplyr::summarise(revenue = sum(TotalCost), transactions = n_distinct(InvoiceNo), 
                    customers = n_distinct(CustomerID)) %>%
   mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
-  ungroup() %>%
   arrange(desc(revenue))
- top_n(top_5, 5)
+
+#Plot countries vs. revenue
+top_5 %>% 
+  ggplot(aes(x=Country, y=revenue))+
+  geom_bar(stat = 'identity', fill = '#FF9933') +
+  ggtitle('Top 5 Countries by Revenue') +
+  xlab('Countries') +
+  ylab('Revenue')+
+  scale_y_continuous(labels = comma)
 ```
 
-According to the chart below, Netherlands and EIRE have significant sources of revenue. Germany and France also represent significant opportunities but at a lower level.
+We repeat the above step without United Kingdom to remove bias and to see the other countries revenue clearly. According to the chart below, Netherlands and EIRE also have significant revenue generation. Germany and France represent significant opportunities but at a lower level.
 
 ```{r Plot - Top 5 Countries, message = FALSE, warning = FALSE}
 #Plot top 5 country revenue summary
+#
+top5Countries <- customer_data %>%
+  filter(Country == 'Netherlands' | Country == 'EIRE' | Country == 'Germany' | Country == 'France' | Country == 'Australia')
+top_5 <- top5Countries %>%
+  group_by(Country) %>%
+  dplyr::summarise(revenue = sum(TotalCost), transactions = n_distinct(InvoiceNo), 
+                   customers = n_distinct(CustomerID)) %>%
+  mutate(aveOrdVal = (round((revenue / transactions),2))) %>%
+  arrange(desc(revenue))
 top_5 %>% 
   group_by(Country) %>%
   dplyr::summarise(revenue = sum(revenue)) %>% 
   hchart('treemap', hcaes(x = 'Country', value = 'revenue', color = 'revenue')) %>%
-  hc_title(text=" Top 5 Countries by Revenue")
+  hc_title(text=" Top 5 Countries by Revenue (excluding United Kingdom)")
+top_5 
 ```
 
 
-## 2.4.2 Customer segmentation
-
+## 2.9 Customer segmentation
 
 If we can identify a group of customers who make purchases regularly, we can target this group with dedicated marketing campaigns which may reinforce their loyalty. Here we use the CustomerID to look for differences between customers.
 
-We plot the customer summaries from the top 5 countries.
+We summarize the top customers by revenue.
 
 ```{r Plot - Customer Summary, message = FALSE, warning = FALSE}
 custSummary_1 <- customer_data %>%
@@ -387,14 +395,13 @@ custSummary_1 <- customer_data %>%
   ungroup() %>%
   arrange(desc(revenue))
 
-head(custSummary_1, n = 10)
+head(custSummary_1)
 ```
 
-The summary below shows that there seems to be quite a lot of high-quantity sales and refunds.
+The summary below shows that there seems to be quite a lot of high-quantity sales and refunds as well.
 
 ```{r Summary - Customer Sales & Refunds, message = FALSE, warning = FALSE}
-#Seems we have a lot of refunds
-#seems there are quite a lot of high-quantity sales and refunds
+#summarize customers with high revenues/sales
 custSummary_2 <- customer_data %>%
   group_by(CustomerID, InvoiceNo) %>%
   summarise(revenue = sum(TotalCost), transactions = n_distinct(InvoiceNo)) %>%
@@ -403,7 +410,7 @@ custSummary_2 <- customer_data %>%
   arrange(revenue) %>%
   mutate(cumsum=cumsum(revenue))
 
-head(custSummary_2, n =10)
+head(custSummary_2)
 ```
 
 It seems many of the large transactions are refunded, so if we sum the revenue, we should be working with some reasonable numbers.
@@ -423,7 +430,7 @@ custSummary_2$recentDays <- as.integer(custSummary_2$recentDays)
 head(custSummary_2, n = 5)
 ```
 
-The dataframe can provide us with the order value and date and time information for each transaction, that can be grouped by customer.
+The dataframe can provide us with the order value and date and time information for each transaction, that can be grouped by customerID.
 
 ```{r Summary - Customer Info, message = FALSE, warning = FALSE}
 customerSummary_3 <- custSummary_2 %>%
@@ -435,7 +442,7 @@ customerSummary_3 <- custSummary_2 %>%
 head(customerSummary_3)
 ```
 
-We filter orders greater than 1 and revenue greater than 50 pounds. Our dataframe that gives us a list of repeat customers and tells us their country, how many orders they have made, total revenue and average order value as well as the day of the week and the time of the day they most frequently place orders.
+We filter orders greater than 1 and revenue greater than 50 pounds. Our dataframe gives us a list of repeat customers and tells us their country, how many orders they have made, total revenue and average order value as well as the day of the week and the time of the day they most frequently place orders.
 
 ```{r Summary - Customer Final, message = FALSE, warning = FALSE}
 customerSummary_3Sum <- customerSummary_3 %>%
@@ -443,7 +450,7 @@ customerSummary_3Sum <- customerSummary_3 %>%
 head(customerSummary_3Sum)
 dim(customerSummary_3Sum) #We remain with a small subset (2,845)
 ```
-We remain with a small subset of 2,845 customers. From this, we are in a good position to answer a number of questions about the customers that we could use for targeted marketing strategies.
+We now remain with a small subset of 2,845 customers. From this, we are in a better position to answer a number of questions about the customers that we could use for targeted marketing strategies.
 
 ```{r Summary - Customers Targetd, message = FALSE, warning = FALSE}
 custTargets <- customerSummary_3Sum %>%
@@ -453,7 +460,7 @@ rownames(custTargets) <- customerSummary_3Sum$CustomerID
 head(custTargets)
 ```
 
-By analysing how customers cluster, we discover groups of customers that behave in similar ways. This level of customer segmentation is useful in marketing to these groups of customers appropriately. A marketing campaign that works for a group of customers that places low value orders frequently may not be appropriate for customers who place sporadic, high value orders for example.
+By analyzing how customers cluster, we discover groups of customers that behave in similar ways. This level of customer segmentation is useful in marketing to these groups of customers appropriately. A marketing campaign that works for a group of customers that places low value orders frequently may not be appropriate for customers who place sporadic, high value orders for example. We use a heat map to visualize the customers recency, order and revenue scores. Higher scores are indicated by the darker areas in the heatmap.
 
 ```{r Plot - Heatmap, message = FALSE, warning = FALSE}
 #Generate a heatmap
@@ -461,27 +468,26 @@ options(repr.plot.width=20, repr.plot.height=14)
 heatmap(scale(custTargets), cexCol = 0.9)
 ```
 
-Recency refers to the number of days before the reference date when a customer made the last purchase. The lesser the value of recency, higher the likelihood the customer will visit to a store.
+Recency refers to the number of days before the reference date when a customer made the last purchase. The lesser the value of recency, higher the likelihood the customer will visit the store.
 
 Our clustering algorithm aims to keep the distance between data points in a cluster as little as possible relative to the distance between two clusters. Members of separate groups are very distinct whereas individuals of one group are quite similar.
 
-From the heatmap above, it is evident that the total revenue clusters with the number of orders as we would expect. The mean and median order values cluster together, again this is expected, and lastly the order recency sits in its own group. The significant point here is how the customers rows cluster. We are able to uncover groups of customers that behave in similar ways.
-
+From the heatmap above, it is evident that the total revenue clusters with the number of orders as we would expect. The mean and median order values cluster together, again this is expected, and lastly the order recency sits in its own group. The significant point here is how the customers rows cluster. We are able to uncover groups of customers that behave in similar ways. We have an idea about the clusters, and we now proceed to employ K-means Algorithm as our segmentation approach.
 
 
 # 3. Results
 
-This section presents the prediction approach that was employed, modeling results and discusses the model performance.
+This section presents the segmentation approach that was employed and the results obtained.
 
-### 3.1 The Prediction Approach (Using K-means Algorithm)
+## 3.1 Segmentation Approach (Using K-means Algorithm)
 
-*There are 3 main steps in K-Means algorithm (known also as Lloyd’s algorithm):
+* There are 3 main steps in K-Means algorithm (known also as Lloyd’s algorithm):
 + Split samples into initial groups by using seed points. The nearest samples to these seed point will create initial clusters.
 + Calculate samples distances to groups’ central points (centroids) and assign the nearest samples to their cluster.
 + The third step is to calculate newly created (updated) cluster centroids.
 
 
-### 3.1.2 Using Elbow Method
+### Using Elbow Method
 
 The main goal behind cluster partitioning methods like k-means is to define the clusters that maintain the intra-cluster variation at a minimum. The plot below denotes the appropriate number of clusters required in our model. In the plot, the location of a bend or a knee is the indication of the optimum number of clusters. 
 
@@ -495,9 +501,11 @@ fviz_nbclust(custTargets, kmeans, method = "wss") +
 We use the kmeans function to come up with 4 clusters. We then attach the results to CustomersID to identify each customer's cluster.
  
 ```{r Clusters Kmeans, message = FALSE, warning = FALSE}
-clusters <- kmeans(scale(custTargets[,2:4]), 4, nstart = 1) # Performing kmeans with 4 clusters. nstart > 1 is often recommended.
-custTargets$Cluster <- as.factor(clusters$cluster) # Attaching the results to CustomersID
-custTargetsDf <- as.data.frame(custTargets) # convert matrix to dataframe
+clusters <- kmeans(scale(custTargets[,1:5]), 4, nstart = 1) 
+#Performing kmeans with 4 clusters. nstart > 1 is often recommended.
+#Attaching the results to CustomersID
+custTargets$Cluster <- as.factor(clusters$cluster) 
+custTargetsDf <- as.data.frame(custTargets) #convert matrix to dataframe
 ```
 
 Based on the Elbow chart produced we conclude that 4 is the optimal number of clusters since it seems to be appearing at the bend in the elbow plot and this is our K value or an optimal number of clusters. Below are the cluster sizes:
@@ -514,18 +522,24 @@ Below are the cluster means.
 clusters$centers
 ```
 
-+ Cluster 2 represents 4 customers having a high recency and revenue.
-+ Cluster 1 consist of 29 customers with high revenue.
-+ Cluster 4 comprises of 2,811 customers with high number of orders.
-
-```{r Clusters Orders, message = FALSE, warning = FALSE}
-  fviz_cluster(clusters, data=custTargets[, -6], ellipse.type = "norm")
+```{r Plot Clusters All, message = FALSE, warning = FALSE}
+#fviz_cluster(clusters, data=as.data.frame(custTargets)[, -6], ellipse.type = "norm")
 ```
-# 4. Conclusion 
 
-We managed to identify four segments of customers according to their revenue patterns, product orders and recency which will helps target the customers based on their habits. The clusters created helps us understand the customers in terms of revenue generated, frequency of purchase and days of inactivity. Through Kmeans clustering were able to segment customers to get a better understanding of them which in turn could be used to increase a company's revenue.
+* It is evident that from the results from the table and the chart above: 
++ Cluster 1 consist of 29 customers with high revenue.
++ Cluster 2 represents 4 customers having a highest number of orders.
++ Cluster 3 represents 1 customer who received very huge refunds (not significant).
++ Cluster 4 comprises of 2,811 customers with highest recency.
 
-Further analysis using other segmentation approaches can be conducted on the clusters to identify more narrowed characteristics of the customers, understand relationship between cluster and types of product purchased or predicting each cluster and customer’s lifetime value.
+
+# 4. Conclusion
+
+We managed to identify three main segments of customers according to their revenue patterns, number of orders and recency which will helps target the customers based on their habits. One cluster which comprised of a single customer was not found to be significant for our case. 
+
+Through Kmeans clustering were able to segment customers to get a better understanding of them which in turn could be used to increase a company's revenue. Other clustering algorithms such as the Silhouette and Gap statistic methods could be used to identify the the optimal number of clusters. For this project we restricted ourselves to the Elbow method only.
+
+Further analysis using other segmentation approaches such as RFM Analysis, Principal Component Analysis (PCA) etc. can be conducted on the clusters to identify more narrowed characteristics of the customers, understand relationship between cluster and types of product purchased or predicting each cluster and customers lifetime value.
 
 
 
@@ -533,8 +547,8 @@ Further analysis using other segmentation approaches can be conducted on the clu
 
 
 ---
-title: "HarvardX:PH125.9x Data Science - Capstone CYO: Customer Segmentation Project"
+title: "HarvardX:PH125.9x Data Science - Capstone: Customer Segmentation Project"
 author: "Richard Jonyo"
-date: "04 March 2022"
+date: "06 March 2022"
 
 ---
