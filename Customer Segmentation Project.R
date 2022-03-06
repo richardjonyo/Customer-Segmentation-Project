@@ -1,8 +1,8 @@
 ############################################################
 # Customer Segmentation Project (Capstone CYO Project)
 # By Richard Jonyo
-# Purpose: To identify the segments of customers  based on common characteristics or patterns so that companies can market their products by targeting each group effectively and significantly. 
-#          In this machine learning project, we will make use of K-means clustering which is the essential algorithm for clustering unlabeled dataset.
+# Goal: The goal of this project is to identify segments of customers based on common characteristics or patterns. 
+#          In this machine learning project, we will make use of K-means clustering.
 ###########################################################
 # Note: this process could take a couple of minutes
 if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
