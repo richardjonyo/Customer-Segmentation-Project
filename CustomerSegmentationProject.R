@@ -303,7 +303,7 @@ clusters$size
 clusters$centers
 
 #We plot the clusters
-fviz_cluster(clusters, data=as.data.frame(custTargets)[, -6], ellipse.type = "norm")
+#fviz_cluster(clusters, data=as.data.frame(custTargets)[, -6], ellipse.type = "norm")
 
 
 
